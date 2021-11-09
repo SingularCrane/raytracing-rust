@@ -8,12 +8,12 @@ pub struct Vec3 {
     pub z: f64,
 }
 
-trait Length {
+pub trait Length {
     fn length(&self) -> f64;
     fn length_squared(&self) -> f64;
 }
 
-trait VectorMath {
+pub trait VectorMath {
     fn dot(&self, other: Vec3) -> f64;
     fn cross(&self, other: Vec3) -> Vec3;
     fn unit_vector(&self) -> Vec3;
@@ -85,7 +85,7 @@ impl ops::Mul<Vec3> for Vec3 {
 impl ops::Div<f64> for Vec3 {
     type Output = Self;
     fn div(self, _rhs: f64) -> Self::Output {
-        self * 1.0 / _rhs
+        (1.0 / _rhs) * self
     }
 }
 
