@@ -7,7 +7,7 @@ pub struct Ray {
     pub dir: Vec3,
 }
 
-trait At {
+pub trait At {
     fn at(&self, t: f64) -> Point3;
 }
 

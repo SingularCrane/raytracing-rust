@@ -19,6 +19,12 @@ pub trait VectorMath {
     fn unit_vector(&self) -> Vec3;
 }
 
+impl Vec3 {
+    pub fn new(x: f64, y: f64, z: f64) -> Vec3 {
+        Vec3 { x: x, y: y, z: z }
+    }
+}
+
 // Negate
 impl ops::Neg for Vec3 {
     type Output = Self;
@@ -157,6 +163,3 @@ impl VectorMath for Vec3 {
         *self / len
     }
 }
-
-// type Point3 = Vec3;
-// type Color = Vec3;
