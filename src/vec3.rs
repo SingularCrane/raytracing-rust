@@ -8,20 +8,34 @@ pub struct Vec3 {
     pub z: f64,
 }
 
-pub trait Length {
-    fn length(&self) -> f64;
-    fn length_squared(&self) -> f64;
-}
-
-pub trait VectorMath {
-    fn dot(&self, other: Vec3) -> f64;
-    fn cross(&self, other: Vec3) -> Vec3;
-    fn unit_vector(&self) -> Vec3;
-}
-
 impl Vec3 {
     pub fn new(x: f64, y: f64, z: f64) -> Vec3 {
         Vec3 { x: x, y: y, z: z }
+    }
+
+    pub fn length(&self) -> f64 {
+        self.length_squared().sqrt()
+    }
+
+    pub fn length_squared(&self) -> f64 {
+        self.x * self.x + self.y * self.y + self.z * self.z
+    }
+
+    pub fn dot(&self, other: Vec3) -> f64 {
+        self.x * other.x + self.y * other.y + self.z * other.z
+    }
+
+    pub fn cross(&self, other: Vec3) -> Vec3 {
+        Vec3 {
+            x: self.y * other.z - self.z * other.y,
+            y: self.z * other.x - self.x * other.z,
+            z: self.z * other.y - self.y * other.x,
+        }
+    }
+
+    pub fn unit_vector(&self) -> Vec3 {
+        let len = self.length();
+        *self / len
     }
 }
 
@@ -132,34 +146,5 @@ impl ops::DivAssign<f64> for Vec3 {
 impl fmt::Display for Vec3 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{} {} {}", self.x, self.y, self.z)
-    }
-}
-
-impl Length for Vec3 {
-    fn length(&self) -> f64 {
-        self.length_squared().sqrt()
-    }
-
-    fn length_squared(&self) -> f64 {
-        self.x * self.x + self.y * self.y + self.z * self.z
-    }
-}
-
-impl VectorMath for Vec3 {
-    fn dot(&self, other: Vec3) -> f64 {
-        self.x * other.x + self.y * other.y + self.z * other.z
-    }
-
-    fn cross(&self, other: Vec3) -> Vec3 {
-        Vec3 {
-            x: self.y * other.z - self.z * other.y,
-            y: self.z * other.x - self.x * other.z,
-            z: self.z * other.y - self.y * other.x,
-        }
-    }
-
-    fn unit_vector(&self) -> Vec3 {
-        let len = self.length();
-        *self / len
     }
 }
