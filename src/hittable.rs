@@ -16,16 +16,8 @@ pub struct HitRecord {
 impl HitRecord {
     pub fn new() -> HitRecord {
         HitRecord {
-            p: Point3 {
-                x: 0.,
-                y: 0.,
-                z: 0.,
-            },
-            normal: Vec3 {
-                x: 0.,
-                y: 0.,
-                z: 0.,
-            },
+            p: Point3::new(0., 0., 0.),
+            normal: Vec3::new(0., 0., 0.),
             t: 0.,
             front_face: false,
         }
