@@ -1,3 +1,4 @@
+use crate::utils::*;
 use std::fmt;
 use std::ops;
 
@@ -11,6 +12,35 @@ pub struct Vec3 {
 impl Vec3 {
     pub fn new(x: f64, y: f64, z: f64) -> Vec3 {
         Vec3 { x: x, y: y, z: z }
+    }
+
+    pub fn random() -> Vec3 {
+        Vec3 {
+            x: random_f64(),
+            y: random_f64(),
+            z: random_f64(),
+        }
+    }
+
+    pub fn random_range(min: f64, max: f64) -> Vec3 {
+        Vec3 {
+            x: random_range(min, max),
+            y: random_range(min, max),
+            z: random_range(min, max),
+        }
+    }
+
+    pub fn random_unit_sphere() -> Vec3 {
+        loop {
+            let p = Vec3::random();
+            if p.length_squared() < 1. {
+                return p;
+            }
+        }
+    }
+
+    pub fn random_unit_vector() -> Vec3 {
+        Self::random_unit_sphere().unit_vector()
     }
 
     pub fn length(&self) -> f64 {

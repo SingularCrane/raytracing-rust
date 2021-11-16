@@ -7,12 +7,15 @@ pub struct Ray {
     pub dir: Vec3,
 }
 
-pub trait At {
-    fn at(&self, t: f64) -> Point3;
-}
+impl Ray {
+    pub fn new(orig: Point3, dir: Vec3) -> Ray {
+        Ray {
+            orig: orig,
+            dir: dir,
+        }
+    }
 
-impl At for Ray {
-    fn at(&self, t: f64) -> Point3 {
+    pub fn at(&self, t: f64) -> Point3 {
         self.orig + t * self.dir
     }
 }

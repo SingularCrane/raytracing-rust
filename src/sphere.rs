@@ -1,6 +1,5 @@
 use crate::hittable::*;
 use crate::ray::*;
-use crate::vec3::*;
 
 pub struct Sphere {
     center: Point3,
