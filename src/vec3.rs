@@ -43,6 +43,15 @@ impl Vec3 {
         Self::random_unit_sphere().unit_vector()
     }
 
+    pub fn reflect(&self, normal: Vec3) -> Vec3 {
+        return *self - 2. * self.dot(normal) * normal;
+    }
+
+    pub fn near_zero(&self) -> bool {
+        let s = 1.0e-8;
+        (self.x < s) && (self.y < s) && (self.z < s)
+    }
+
     pub fn length(&self) -> f64 {
         self.length_squared().sqrt()
     }
