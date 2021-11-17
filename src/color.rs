@@ -1,4 +1,3 @@
-use crate::utils::*;
 use crate::vec3;
 
 pub type Color = vec3::Vec3;
@@ -14,8 +13,8 @@ pub fn write_color(pixel_color: Color, samples_per_pixel: usize) -> String {
     b = (b * scale).sqrt();
     format!(
         "{} {} {}",
-        (256. * clamp(r, 0., 0.999)) as u32,
-        (256. * clamp(g, 0., 0.999)) as u32,
-        (256. * clamp(b, 0., 0.999)) as u32,
+        (256. * r.clamp(0., 0.999)) as u32,
+        (256. * g.clamp(0., 0.999)) as u32,
+        (256. * b.clamp(0., 0.999)) as u32,
     )
 }

@@ -47,6 +47,13 @@ impl Vec3 {
         return *self - 2. * self.dot(normal) * normal;
     }
 
+    pub fn refract(&self, normal: Vec3, etai_over_etat: f64) -> Vec3 {
+        let costheta = (-*self).dot(normal).min(1.0);
+        let r_out_perp = etai_over_etat * (*self + costheta * normal);
+        let r_out_parallel = -((1. - r_out_perp.length_squared()).abs().sqrt()) * normal;
+        return r_out_perp + r_out_parallel;
+    }
+
     pub fn near_zero(&self) -> bool {
         let s = 1.0e-8;
         (self.x < s) && (self.y < s) && (self.z < s)
