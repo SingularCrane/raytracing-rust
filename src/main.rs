@@ -18,6 +18,7 @@ mod prelude {
     pub use crate::material::*;
     pub use crate::ray::*;
     pub use crate::sphere::*;
+    pub use crate::utils::*;
     pub use crate::vec3::*;
 }
 
@@ -40,51 +41,95 @@ fn ray_color(r: &Ray, world: &dyn Hittable, depth: usize) -> Color {
     (1.0 - t) * Color::new(1., 1., 1.) + t * Color::new(0.5, 0.7, 1.0)
 }
 
+fn random_scene() -> HittableList {
+    let mut world = HittableList::new();
+
+    let mat_ground = Rc::new(Lambertian::new(Color::new(0.5, 0.5, 0.5)));
+    world.add(Box::new(Sphere::new(
+        Point3::new(0., -1000., 0.),
+        1000.,
+        mat_ground.clone(),
+    )));
+
+    for a in -11..11 {
+        for b in -11..11 {
+            let choose_mat = random_f64();
+            let center = Point3::new(
+                a as f64 + 0.9 * random_f64(),
+                0.2,
+                b as f64 + 0.9 * random_f64(),
+            );
+
+            if (center - Point3::new(4., 0.2, 0.)).length() > 0.9 {
+                if choose_mat < 0.8 {
+                    // diffuse
+                    let albedo = Color::random() * Color::random();
+                    let sphere_material = Rc::new(Lambertian::new(albedo));
+                    world.add(Box::new(Sphere::new(center, 0.2, sphere_material.clone())));
+                } else if choose_mat < 0.95 {
+                    // metal
+                    let albedo = Color::random_range(0.5, 1.);
+                    let fuzz = random_range(0., 0.5);
+                    let sphere_materal = Rc::new(Metal::new(albedo, fuzz));
+                    world.add(Box::new(Sphere::new(center, 0.2, sphere_materal.clone())));
+                } else {
+                    // glass
+                    let sphere_material = Rc::new(Dielectric::new(1.5));
+                    world.add(Box::new(Sphere::new(center, 0.2, sphere_material.clone())));
+                }
+            }
+        }
+    }
+
+    let material1 = Rc::new(Dielectric::new(1.5));
+    world.add(Box::new(Sphere::new(
+        Point3::new(0., 1., 0.),
+        1.0,
+        material1.clone(),
+    )));
+    let material2 = Rc::new(Lambertian::new(Color::new(0.4, 0.2, 0.1)));
+    world.add(Box::new(Sphere::new(
+        Point3::new(-4., 1., 0.),
+        1.0,
+        material2.clone(),
+    )));
+    let material3 = Rc::new(Metal::new(Color::new(0.7, 0.6, 0.5), 0.0));
+    world.add(Box::new(Sphere::new(
+        Point3::new(4., 1., 0.),
+        1.0,
+        material3,
+    )));
+
+    world
+}
+
 fn main() {
     let mut rng = thread_rng();
     // image
-    let aspect_ratio = 16.0 / 9.0;
-    let image_width: u32 = 400;
+    let aspect_ratio = 3.0 / 2.0;
+    let image_width: u32 = 300;
     let image_height = (image_width as f64 / aspect_ratio).round() as u32;
     let samples_per_pixel = 100;
     let max_depth = 50;
 
     // world
-    let mut world = HittableList::new();
-
-    let mat_ground = Rc::new(Lambertian::new(Color::new(0.8, 0.8, 0.0)));
-    let mat_center = Rc::new(Lambertian::new(Color::new(0.1, 0.2, 0.5)));
-    let mat_left = Rc::new(Dielectric::new(1.5));
-    let mat_right = Rc::new(Metal::new(Color::new(0.8, 0.6, 0.2), 0.1));
-
-    world.add(Box::new(Sphere::new(
-        Point3::new(0., -100.5, -1.),
-        100.,
-        mat_ground.clone(),
-    )));
-    world.add(Box::new(Sphere::new(
-        Point3::new(0., 0., -1.),
-        0.5,
-        mat_center.clone(),
-    )));
-    world.add(Box::new(Sphere::new(
-        Point3::new(-1., 0., -1.),
-        0.5,
-        mat_left.clone(),
-    )));
-    world.add(Box::new(Sphere::new(
-        Point3::new(-1., 0., -1.),
-        -0.4,
-        mat_left.clone(),
-    )));
-    world.add(Box::new(Sphere::new(
-        Point3::new(1., 0., -1.),
-        0.5,
-        mat_right.clone(),
-    )));
+    let world = random_scene();
 
     // camera
-    let camera = Camera::new();
+    let lookfrom = Point3::new(13., 2., 3.);
+    let lookat = Point3::new(0., 0., 0.);
+    let vup = Vec3::new(0., 1., 0.);
+    let dist_to_focus = 10.;
+    let aperture = 0.1;
+    let camera = Camera::new(
+        lookfrom,
+        lookat,
+        vup,
+        20.,
+        aspect_ratio,
+        aperture,
+        dist_to_focus,
+    );
     // render
     println!("P3\n{} {}\n255", image_width, image_height);
 
