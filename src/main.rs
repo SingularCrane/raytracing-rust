@@ -65,7 +65,15 @@ fn random_scene() -> HittableList {
                     // diffuse
                     let albedo = Color::random() * Color::random();
                     let sphere_material = Rc::new(Lambertian::new(albedo));
-                    world.add(Box::new(Sphere::new(center, 0.2, sphere_material.clone())));
+                    let center2 = center + Vec3::new(0., random_range(0., 0.5), 0.);
+                    world.add(Box::new(MovingSphere::new(
+                        center,
+                        center2,
+                        0.,
+                        1.,
+                        0.2,
+                        sphere_material.clone(),
+                    )));
                 } else if choose_mat < 0.95 {
                     // metal
                     let albedo = Color::random_range(0.5, 1.);
@@ -129,6 +137,8 @@ fn main() {
         aspect_ratio,
         aperture,
         dist_to_focus,
+        0.,
+        1.,
     );
     // render
     println!("P3\n{} {}\n255", image_width, image_height);
