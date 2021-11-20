@@ -1,16 +1,16 @@
 use crate::hittable::*;
 use crate::material::*;
 use crate::ray::*;
-use std::rc::Rc;
+use std::sync::Arc;
 
 pub struct Sphere {
     center: Point3,
     radius: f64,
-    material: Rc<dyn Material>,
+    material: Arc<dyn Material>,
 }
 
 impl Sphere {
-    pub fn new(c: Point3, r: f64, m: Rc<dyn Material>) -> Sphere {
+    pub fn new(c: Point3, r: f64, m: Arc<dyn Material>) -> Sphere {
         Sphere {
             center: c,
             radius: r,
@@ -53,7 +53,7 @@ pub struct MovingSphere {
     time0: f64,
     time1: f64,
     radius: f64,
-    material: Rc<dyn Material>,
+    material: Arc<dyn Material>,
 }
 
 impl MovingSphere {
@@ -63,7 +63,7 @@ impl MovingSphere {
         time0: f64,
         time1: f64,
         radius: f64,
-        material: Rc<dyn Material>,
+        material: Arc<dyn Material>,
     ) -> MovingSphere {
         MovingSphere {
             center0: cen0,

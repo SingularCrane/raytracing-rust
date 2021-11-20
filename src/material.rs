@@ -4,7 +4,7 @@ use crate::ray::*;
 use crate::utils::*;
 use crate::vec3::*;
 
-pub trait Material {
+pub trait Material: Send + Sync {
     fn scatter(&self, r_in: &Ray, rec: &HitRecord) -> Option<Scatter>;
 }
 

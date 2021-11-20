@@ -1,3 +1,4 @@
+extern crate image;
 extern crate rand;
 
 mod camera;
@@ -24,7 +25,16 @@ mod prelude {
 
 use crate::prelude::*;
 use rand::prelude::*;
-use std::rc::Rc;
+use std::sync::{Arc, Mutex};
+use std::thread;
+
+struct ImageData {
+    height: u32,
+    width: u32,
+    samples_per_pixel: usize,
+    max_depth: usize,
+    camera: Camera,
+}
 
 fn ray_color(r: &Ray, world: &dyn Hittable, depth: usize) -> Color {
     if depth <= 0 {
@@ -44,7 +54,7 @@ fn ray_color(r: &Ray, world: &dyn Hittable, depth: usize) -> Color {
 fn random_scene() -> HittableList {
     let mut world = HittableList::new();
 
-    let mat_ground = Rc::new(Lambertian::new(Color::new(0.5, 0.5, 0.5)));
+    let mat_ground = Arc::new(Lambertian::new(Color::new(0.5, 0.5, 0.5)));
     world.add(Box::new(Sphere::new(
         Point3::new(0., -1000., 0.),
         1000.,
@@ -64,7 +74,7 @@ fn random_scene() -> HittableList {
                 if choose_mat < 0.8 {
                     // diffuse
                     let albedo = Color::random() * Color::random();
-                    let sphere_material = Rc::new(Lambertian::new(albedo));
+                    let sphere_material = Arc::new(Lambertian::new(albedo));
                     let center2 = center + Vec3::new(0., random_range(0., 0.5), 0.);
                     world.add(Box::new(MovingSphere::new(
                         center,
@@ -78,30 +88,30 @@ fn random_scene() -> HittableList {
                     // metal
                     let albedo = Color::random_range(0.5, 1.);
                     let fuzz = random_range(0., 0.5);
-                    let sphere_materal = Rc::new(Metal::new(albedo, fuzz));
+                    let sphere_materal = Arc::new(Metal::new(albedo, fuzz));
                     world.add(Box::new(Sphere::new(center, 0.2, sphere_materal.clone())));
                 } else {
                     // glass
-                    let sphere_material = Rc::new(Dielectric::new(1.5));
+                    let sphere_material = Arc::new(Dielectric::new(1.5));
                     world.add(Box::new(Sphere::new(center, 0.2, sphere_material.clone())));
                 }
             }
         }
     }
 
-    let material1 = Rc::new(Dielectric::new(1.5));
+    let material1 = Arc::new(Dielectric::new(1.5));
     world.add(Box::new(Sphere::new(
         Point3::new(0., 1., 0.),
         1.0,
         material1.clone(),
     )));
-    let material2 = Rc::new(Lambertian::new(Color::new(0.4, 0.2, 0.1)));
+    let material2 = Arc::new(Lambertian::new(Color::new(0.4, 0.2, 0.1)));
     world.add(Box::new(Sphere::new(
         Point3::new(-4., 1., 0.),
         1.0,
         material2.clone(),
     )));
-    let material3 = Rc::new(Metal::new(Color::new(0.7, 0.6, 0.5), 0.0));
+    let material3 = Arc::new(Metal::new(Color::new(0.7, 0.6, 0.5), 0.0));
     world.add(Box::new(Sphere::new(
         Point3::new(4., 1., 0.),
         1.0,
@@ -111,17 +121,57 @@ fn random_scene() -> HittableList {
     world
 }
 
-fn main() {
+fn render_row(
+    world: Arc<HittableList>,
+    row_count: Arc<Mutex<u32>>,
+    data: Arc<ImageData>,
+    output: Arc<Mutex<image::RgbImage>>,
+) {
+    let w: &HittableList = &world;
     let mut rng = thread_rng();
+    loop {
+        let mut _current_row: u32 = 0;
+        {
+            let mut rc = row_count.lock().unwrap();
+            _current_row = *rc;
+            *rc += 1;
+            if *rc > data.height {
+                return;
+            }
+            eprint!("\rScanlines Remaining: {:04}", data.height - *rc);
+        }
+        for i in 0..data.width {
+            let mut pixel_color = Color::new(0., 0., 0.);
+
+            for _s in 0..data.samples_per_pixel {
+                let x: f64 = rng.gen();
+                let y: f64 = rng.gen();
+                let u = (i as f64 + x) / (data.width as f64 - 1.0);
+                let v = (_current_row as f64 + y) / (data.height as f64 - 1.0);
+                let r = data.camera.get_ray(u, v);
+                pixel_color += ray_color(&r, w, data.max_depth);
+            }
+            {
+                let o = &output.clone();
+                let mut o_mut = o.lock().unwrap();
+                o_mut.put_pixel(
+                    i,
+                    data.height - _current_row - 1,
+                    image::Rgb(write_color(pixel_color, data.samples_per_pixel)),
+                )
+            }
+        }
+    }
+}
+
+fn main() {
     // image
     let aspect_ratio = 3.0 / 2.0;
     let image_width: u32 = 300;
     let image_height = (image_width as f64 / aspect_ratio).round() as u32;
-    let samples_per_pixel = 100;
-    let max_depth = 50;
 
     // world
-    let world = random_scene();
+    let world = Arc::new(random_scene());
 
     // camera
     let lookfrom = Point3::new(13., 2., 3.);
@@ -140,24 +190,35 @@ fn main() {
         0.,
         1.,
     );
+
+    let image_data = Arc::new(ImageData {
+        height: image_height,
+        width: image_width,
+        samples_per_pixel: 50,
+        max_depth: 50,
+        camera: camera,
+    });
+    let image = Arc::new(Mutex::new(image::ImageBuffer::new(
+        image_data.width,
+        image_data.height,
+    )));
+    let row_count = Arc::new(Mutex::new(0));
+
     // render
-    println!("P3\n{} {}\n255", image_width, image_height);
-
-    for j in (0..image_height).rev() {
-        eprint!("\rScanlines Remaining: {:04}", j);
-        for i in 0..image_width {
-            let mut pixel_color = Color::new(0., 0., 0.);
-
-            for _s in 0..samples_per_pixel {
-                let x: f64 = rng.gen();
-                let y: f64 = rng.gen();
-                let u = (i as f64 + x) / (image_width as f64 - 1.0);
-                let v = (j as f64 + y) / (image_height as f64 - 1.0);
-                let r = camera.get_ray(u, v);
-                pixel_color += ray_color(&r, &world, max_depth);
-            }
-            println!("{}", write_color(pixel_color, samples_per_pixel));
-        }
+    let mut handles = vec![];
+    for _i in 0..4 {
+        let w = world.clone();
+        let rc = row_count.clone();
+        let id = image_data.clone();
+        let i = image.clone();
+        let handle = thread::spawn(move || render_row(w, rc, id, i));
+        handles.push(handle)
     }
+
+    for handle in handles {
+        handle.join().unwrap();
+    }
+
+    image.lock().unwrap().save("output.png").unwrap();
     eprint!("\nDone\n");
 }
