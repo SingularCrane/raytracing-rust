@@ -1,6 +1,8 @@
 extern crate image;
 extern crate rand;
 
+mod aabb;
+mod bvh;
 mod camera;
 mod color;
 mod hittable;
@@ -12,6 +14,8 @@ mod utils;
 mod vec3;
 
 mod prelude {
+    pub use crate::aabb::*;
+    pub use crate::bvh::*;
     pub use crate::camera::*;
     pub use crate::color::*;
     pub use crate::hittable::*;
@@ -47,7 +51,7 @@ fn ray_color(r: &Ray, world: &dyn Hittable, depth: usize) -> Color {
         return Color::new(0., 0., 0.);
     }
     let unit_direction: Vec3 = r.dir.unit_vector();
-    let t = 0.5 * (unit_direction.y + 1.0);
+    let t = 0.5 * (unit_direction.y() + 1.0);
     (1.0 - t) * Color::new(1., 1., 1.) + t * Color::new(0.5, 0.7, 1.0)
 }
 
@@ -55,7 +59,7 @@ fn random_scene() -> HittableList {
     let mut world = HittableList::new();
 
     let mat_ground = Arc::new(Lambertian::new(Color::new(0.5, 0.5, 0.5)));
-    world.add(Box::new(Sphere::new(
+    world.add(Arc::new(Sphere::new(
         Point3::new(0., -1000., 0.),
         1000.,
         mat_ground.clone(),
@@ -76,7 +80,7 @@ fn random_scene() -> HittableList {
                     let albedo = Color::random() * Color::random();
                     let sphere_material = Arc::new(Lambertian::new(albedo));
                     let center2 = center + Vec3::new(0., random_range(0., 0.5), 0.);
-                    world.add(Box::new(MovingSphere::new(
+                    world.add(Arc::new(MovingSphere::new(
                         center,
                         center2,
                         0.,
@@ -89,36 +93,36 @@ fn random_scene() -> HittableList {
                     let albedo = Color::random_range(0.5, 1.);
                     let fuzz = random_range(0., 0.5);
                     let sphere_materal = Arc::new(Metal::new(albedo, fuzz));
-                    world.add(Box::new(Sphere::new(center, 0.2, sphere_materal.clone())));
+                    world.add(Arc::new(Sphere::new(center, 0.2, sphere_materal.clone())));
                 } else {
                     // glass
                     let sphere_material = Arc::new(Dielectric::new(1.5));
-                    world.add(Box::new(Sphere::new(center, 0.2, sphere_material.clone())));
+                    world.add(Arc::new(Sphere::new(center, 0.2, sphere_material.clone())));
                 }
             }
         }
     }
 
     let material1 = Arc::new(Dielectric::new(1.5));
-    world.add(Box::new(Sphere::new(
+    world.add(Arc::new(Sphere::new(
         Point3::new(0., 1., 0.),
         1.0,
         material1.clone(),
     )));
     let material2 = Arc::new(Lambertian::new(Color::new(0.4, 0.2, 0.1)));
-    world.add(Box::new(Sphere::new(
+    world.add(Arc::new(Sphere::new(
         Point3::new(-4., 1., 0.),
         1.0,
         material2.clone(),
     )));
     let material3 = Arc::new(Metal::new(Color::new(0.7, 0.6, 0.5), 0.0));
-    world.add(Box::new(Sphere::new(
+    world.add(Arc::new(Sphere::new(
         Point3::new(4., 1., 0.),
         1.0,
         material3,
     )));
 
-    world
+    HittableList::new_from_list(Arc::new(BVHNode::new_from_list(world, 0., 1.)))
 }
 
 fn render_row(

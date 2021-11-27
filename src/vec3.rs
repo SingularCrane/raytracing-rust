@@ -4,29 +4,27 @@ use std::ops;
 
 #[derive(Debug, Clone, Copy)]
 pub struct Vec3 {
-    pub x: f64,
-    pub y: f64,
-    pub z: f64,
+    pub a: [f64; 3],
 }
 
 impl Vec3 {
     pub fn new(x: f64, y: f64, z: f64) -> Vec3 {
-        Vec3 { x: x, y: y, z: z }
+        Vec3 { a: [x, y, z] }
     }
 
     pub fn random() -> Vec3 {
         Vec3 {
-            x: random_f64(),
-            y: random_f64(),
-            z: random_f64(),
+            a: [random_f64(), random_f64(), random_f64()],
         }
     }
 
     pub fn random_range(min: f64, max: f64) -> Vec3 {
         Vec3 {
-            x: random_range(min, max),
-            y: random_range(min, max),
-            z: random_range(min, max),
+            a: [
+                random_range(min, max),
+                random_range(min, max),
+                random_range(min, max),
+            ],
         }
     }
 
@@ -42,9 +40,7 @@ impl Vec3 {
     pub fn random_in_unit_disk() -> Vec3 {
         loop {
             let p = Vec3 {
-                x: random_range(-1., 1.),
-                y: random_range(-1., 1.),
-                z: 0.,
+                a: [random_range(-1., 1.), random_range(-1., 1.), 0.],
             };
             if p.length_squared() < 1. {
                 return p;
@@ -54,6 +50,18 @@ impl Vec3 {
 
     pub fn random_unit_vector() -> Vec3 {
         Self::random_unit_sphere().unit_vector()
+    }
+
+    pub fn x(&self) -> f64 {
+        self.a[0]
+    }
+
+    pub fn y(&self) -> f64 {
+        self.a[1]
+    }
+
+    pub fn z(&self) -> f64 {
+        self.a[2]
     }
 
     pub fn reflect(&self, normal: Vec3) -> Vec3 {
@@ -69,7 +77,7 @@ impl Vec3 {
 
     pub fn near_zero(&self) -> bool {
         let s = 1.0e-8;
-        (self.x < s) && (self.y < s) && (self.z < s)
+        (self.x() < s) && (self.y() < s) && (self.z() < s)
     }
 
     pub fn length(&self) -> f64 {
@@ -77,18 +85,20 @@ impl Vec3 {
     }
 
     pub fn length_squared(&self) -> f64 {
-        self.x * self.x + self.y * self.y + self.z * self.z
+        self.x() * self.x() + self.y() * self.y() + self.z() * self.z()
     }
 
     pub fn dot(&self, other: Vec3) -> f64 {
-        self.x * other.x + self.y * other.y + self.z * other.z
+        self.x() * other.x() + self.y() * other.y() + self.z() * other.z()
     }
 
     pub fn cross(&self, other: Vec3) -> Vec3 {
         Vec3 {
-            x: self.y * other.z - self.z * other.y,
-            y: self.z * other.x - self.x * other.z,
-            z: self.z * other.y - self.y * other.x,
+            a: [
+                self.y() * other.z() - self.z() * other.y(),
+                self.z() * other.x() - self.x() * other.z(),
+                self.z() * other.y() - self.y() * other.x(),
+            ],
         }
     }
 
@@ -103,9 +113,7 @@ impl ops::Neg for Vec3 {
     type Output = Self;
     fn neg(self) -> Self::Output {
         Self {
-            x: -self.x,
-            y: -self.y,
-            z: -self.z,
+            a: [-self.x(), -self.y(), -self.z()],
         }
     }
 }
@@ -115,9 +123,11 @@ impl ops::Add<Vec3> for Vec3 {
     type Output = Self;
     fn add(self, _rhs: Vec3) -> Self::Output {
         Self {
-            x: self.x + _rhs.x,
-            y: self.y + _rhs.y,
-            z: self.z + _rhs.z,
+            a: [
+                self.x() + _rhs.x(),
+                self.y() + _rhs.y(),
+                self.z() + _rhs.z(),
+            ],
         }
     }
 }
@@ -135,9 +145,7 @@ impl ops::Mul<f64> for Vec3 {
     type Output = Self;
     fn mul(self, _rhs: f64) -> Self::Output {
         Self {
-            x: self.x * _rhs,
-            y: self.y * _rhs,
-            z: self.z * _rhs,
+            a: [self.x() * _rhs, self.y() * _rhs, self.z() * _rhs],
         }
     }
 }
@@ -153,9 +161,11 @@ impl ops::Mul<Vec3> for Vec3 {
     type Output = Vec3;
     fn mul(self, _rhs: Vec3) -> Self::Output {
         Self {
-            x: self.x * _rhs.x,
-            y: self.y * _rhs.y,
-            z: self.z * _rhs.z,
+            a: [
+                self.x() * _rhs.x(),
+                self.y() * _rhs.y(),
+                self.z() * _rhs.z(),
+            ],
         }
     }
 }
@@ -171,9 +181,9 @@ impl ops::Div<f64> for Vec3 {
 // += Vec3
 impl ops::AddAssign<Vec3> for Vec3 {
     fn add_assign(&mut self, _rhs: Self) {
-        self.x += _rhs.x;
-        self.y += _rhs.y;
-        self.z += _rhs.z;
+        self.a[0] += _rhs.a[0];
+        self.a[1] += _rhs.a[1];
+        self.a[2] += _rhs.a[2];
     }
 }
 
@@ -187,23 +197,23 @@ impl ops::SubAssign<Vec3> for Vec3 {
 // *= f64
 impl ops::MulAssign<f64> for Vec3 {
     fn mul_assign(&mut self, _rhs: f64) {
-        self.x *= _rhs;
-        self.y *= _rhs;
-        self.z *= _rhs;
+        self.a[0] *= _rhs;
+        self.a[1] *= _rhs;
+        self.a[2] *= _rhs;
     }
 }
 
 // /=
 impl ops::DivAssign<f64> for Vec3 {
     fn div_assign(&mut self, _rhs: f64) {
-        self.x /= _rhs;
-        self.y /= _rhs;
-        self.z /= _rhs;
+        self.a[0] /= _rhs;
+        self.a[1] /= _rhs;
+        self.a[2] /= _rhs;
     }
 }
 
 impl fmt::Display for Vec3 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{} {} {}", self.x, self.y, self.z)
+        write!(f, "{} {} {}", self.x(), self.y(), self.z())
     }
 }
