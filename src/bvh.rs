@@ -60,11 +60,7 @@ impl BVHNode {
                     time0,
                     time1,
                 )),
-                Arc::new(BVHNode::new_from_vec(
-                    objects[mid + 1..].to_vec(),
-                    time0,
-                    time1,
-                )),
+                Arc::new(BVHNode::new_from_vec(objects[mid..].to_vec(), time0, time1)),
                 time0,
                 time1,
             );

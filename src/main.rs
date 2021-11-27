@@ -122,7 +122,8 @@ fn random_scene() -> HittableList {
         material3,
     )));
 
-    HittableList::new_from_list(Arc::new(BVHNode::new_from_list(world, 0., 1.)))
+    //HittableList::new_from_list(Arc::new(BVHNode::new_from_list(world, 0., 1.)))
+    world
 }
 
 fn render_row(
