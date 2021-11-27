@@ -4,3 +4,4 @@
 *.jpg
 *.bmp
 .vscode
+.DS_Store

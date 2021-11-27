@@ -29,23 +29,10 @@ impl BVHNode {
     }
 
     pub fn new_from_list(objects: HittableList, time0: f64, time1: f64) -> BVHNode {
-        return BVHNode::new_from_vec(
-            objects.objects.clone(),
-            0,
-            objects.objects.len(),
-            time0,
-            time1,
-        );
+        return BVHNode::new_from_vec(objects.objects, time0, time1);
     }
 
-    pub fn new_from_vec(
-        src_objects: Vec<Arc<dyn Hittable>>,
-        start: usize,
-        end: usize,
-        time0: f64,
-        time1: f64,
-    ) -> BVHNode {
-        let mut objects = src_objects[start..end].to_vec();
+    pub fn new_from_vec(mut objects: Vec<Arc<dyn Hittable>>, time0: f64, time1: f64) -> BVHNode {
         let axis = random_int(0, 2);
         let comparator = if axis == 0 {
             box_x_compare
@@ -68,11 +55,13 @@ impl BVHNode {
             objects.sort_by(|a, b| comparator(a.clone(), b.clone()));
             let mid = object_span / 2;
             return BVHNode::new(
-                Arc::new(BVHNode::new_from_vec(objects.clone(), 0, mid, time0, time1)),
                 Arc::new(BVHNode::new_from_vec(
-                    objects.clone(),
-                    mid,
-                    object_span,
+                    objects[0..mid].to_vec(),
+                    time0,
+                    time1,
+                )),
+                Arc::new(BVHNode::new_from_vec(
+                    objects[mid + 1..].to_vec(),
                     time0,
                     time1,
                 )),
