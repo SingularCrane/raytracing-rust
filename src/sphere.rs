@@ -4,6 +4,8 @@ use crate::material::*;
 use crate::ray::*;
 use std::sync::Arc;
 
+use std::f64::consts::PI;
+
 pub struct Sphere {
     center: Point3,
     radius: f64,
@@ -40,9 +42,9 @@ impl Hittable for Sphere {
                 return None;
             }
         }
-
-        let mut rec = HitRecord::new(r.at(root), root, self.material.clone());
-        let outward_normal = (rec.p - self.center) / self.radius;
+        let outward_normal = (r.at(root) - self.center) / self.radius;
+        let (u, v) = get_uv(outward_normal);
+        let mut rec = HitRecord::new(r.at(root), root, u, v, self.material.clone());
         rec.set_face_normal(r, &outward_normal);
         Some(rec)
     }
@@ -110,8 +112,9 @@ impl Hittable for MovingSphere {
             }
         }
 
-        let mut rec = HitRecord::new(r.at(root), root, self.material.clone());
-        let outward_normal = (rec.p - self.center(r.time)) / self.radius;
+        let outward_normal = (r.at(root) - self.center(r.time)) / self.radius;
+        let (u, v) = get_uv(outward_normal);
+        let mut rec = HitRecord::new(r.at(root), root, u, v, self.material.clone());
         rec.set_face_normal(r, &outward_normal);
         Some(rec)
     }
@@ -127,4 +130,11 @@ impl Hittable for MovingSphere {
         );
         Some(AABB::surrounding_box(box0, box1))
     }
+}
+
+fn get_uv(p: Point3) -> (f64, f64) {
+    let theta = (-p.y()).acos();
+    let phi = (-p.z()).atan2(p.x()) + PI;
+
+    (phi / (2. * PI), theta / PI)
 }

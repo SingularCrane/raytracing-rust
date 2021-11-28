@@ -10,6 +10,7 @@ mod hittable_list;
 mod material;
 mod ray;
 mod sphere;
+mod texture;
 mod utils;
 mod vec3;
 
@@ -23,6 +24,7 @@ mod prelude {
     pub use crate::material::*;
     pub use crate::ray::*;
     pub use crate::sphere::*;
+    pub use crate::texture::*;
     pub use crate::utils::*;
     pub use crate::vec3::*;
 }
@@ -58,7 +60,12 @@ fn ray_color(r: &Ray, world: &dyn Hittable, depth: usize) -> Color {
 fn random_scene() -> HittableList {
     let mut world = HittableList::new();
 
-    let mat_ground = Arc::new(Lambertian::new(Color::new(0.5, 0.5, 0.5)));
+    let checker: Arc<CheckerTexture> = Arc::new(CheckerTexture::new_solid(
+        Color::new(0.2, 0.3, 0.1),
+        Color::new(0.9, 0.9, 0.9),
+    ));
+
+    let mat_ground = Arc::new(Lambertian::new_textured(checker.clone()));
     world.add(Arc::new(Sphere::new(
         Point3::new(0., -1000., 0.),
         1000.,
@@ -126,6 +133,28 @@ fn random_scene() -> HittableList {
     world
 }
 
+fn two_spheres() -> HittableList {
+    let mut world = HittableList::new();
+
+    let checker: Arc<CheckerTexture> = Arc::new(CheckerTexture::new_solid(
+        Color::new(0.2, 0.3, 0.1),
+        Color::new(0.9, 0.9, 0.9),
+    ));
+
+    world.add(Arc::new(Sphere::new(
+        Point3::new(0., -10., 0.),
+        10.,
+        Arc::new(Lambertian::new_textured(checker.clone())),
+    )));
+    world.add(Arc::new(Sphere::new(
+        Point3::new(0., 10., 0.),
+        10.,
+        Arc::new(Lambertian::new_textured(checker.clone())),
+    )));
+
+    world
+}
+
 fn render_row(
     world: Arc<HittableList>,
     row_count: Arc<Mutex<u32>>,
@@ -172,23 +201,40 @@ fn render_row(
 fn main() {
     // image
     let aspect_ratio = 3.0 / 2.0;
-    let image_width: u32 = 300;
+    let image_width: u32 = 400;
     let image_height = (image_width as f64 / aspect_ratio).round() as u32;
+    let scene = 0;
 
     // world
-    let world = Arc::new(random_scene());
+    let world = match scene {
+        0 => Arc::new(random_scene()),
+        _ => Arc::new(two_spheres()),
+    };
 
     // camera
-    let lookfrom = Point3::new(13., 2., 3.);
-    let lookat = Point3::new(0., 0., 0.);
+    let lookfrom = match scene {
+        0 => Point3::new(13., 2., 3.),
+        _ => Point3::new(13., 2., 2.),
+    };
+    let lookat = match scene {
+        0 => Point3::new(0., 0., 0.),
+        _ => Point3::new(0., 0., 0.),
+    };
     let vup = Vec3::new(0., 1., 0.);
     let dist_to_focus = 10.;
-    let aperture = 0.1;
+    let aperture = match scene {
+        0 => 0.1,
+        _ => 0.0,
+    };
+    let vfov = match scene {
+        0 => 20.,
+        _ => 20.,
+    };
     let camera = Camera::new(
         lookfrom,
         lookat,
         vup,
-        20.,
+        vfov,
         aspect_ratio,
         aperture,
         dist_to_focus,
@@ -199,7 +245,7 @@ fn main() {
     let image_data = Arc::new(ImageData {
         height: image_height,
         width: image_width,
-        samples_per_pixel: 50,
+        samples_per_pixel: 100,
         max_depth: 50,
         camera: camera,
     });

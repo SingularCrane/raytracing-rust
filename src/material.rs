@@ -1,8 +1,10 @@
 use crate::color::*;
 use crate::hittable::*;
 use crate::ray::*;
+use crate::texture::*;
 use crate::utils::*;
 use crate::vec3::*;
+use std::sync::Arc;
 
 pub trait Material: Send + Sync {
     fn scatter(&self, r_in: &Ray, rec: &HitRecord) -> Option<Scatter>;
@@ -23,12 +25,15 @@ impl Scatter {
 }
 
 pub struct Lambertian {
-    pub albedo: Color,
+    pub albedo: Arc<dyn Texture>,
 }
 
 impl Lambertian {
     pub fn new(c: Color) -> Lambertian {
-        Lambertian { albedo: c }
+        Lambertian::new_textured(Arc::new(SolidColor::new(c)))
+    }
+    pub fn new_textured(t: Arc<dyn Texture>) -> Lambertian {
+        Lambertian { albedo: t.clone() }
     }
 }
 
@@ -40,7 +45,7 @@ impl Material for Lambertian {
         }
         return Some(Scatter::new(
             Ray::new(rec.p, scatter_direction, r_in.time),
-            self.albedo,
+            self.albedo.value(rec.u, rec.v, rec.p),
         ));
     }
 }
