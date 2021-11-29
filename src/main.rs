@@ -8,6 +8,7 @@ mod color;
 mod hittable;
 mod hittable_list;
 mod material;
+mod perlin;
 mod ray;
 mod sphere;
 mod texture;
@@ -22,6 +23,7 @@ mod prelude {
     pub use crate::hittable::*;
     pub use crate::hittable_list::*;
     pub use crate::material::*;
+    pub use crate::perlin::*;
     pub use crate::ray::*;
     pub use crate::sphere::*;
     pub use crate::texture::*;
@@ -155,6 +157,38 @@ fn two_spheres() -> HittableList {
     world
 }
 
+fn two_perlin_spheres() -> HittableList {
+    let mut world = HittableList::new();
+
+    let pertext: Arc<NoiseTexture> = Arc::new(NoiseTexture::new_scaled(4.));
+
+    world.add(Arc::new(Sphere::new(
+        Point3::new(0., -1000., 0.),
+        1000.,
+        Arc::new(Lambertian::new_textured(pertext.clone())),
+    )));
+    world.add(Arc::new(Sphere::new(
+        Point3::new(0., 2., 0.),
+        2.,
+        Arc::new(Lambertian::new_textured(pertext.clone())),
+    )));
+
+    world
+}
+
+fn earth() -> HittableList {
+    let mut world = HittableList::new();
+    let earth_texture = Arc::new(ImageTexture::new(std::path::Path::new("earthmap.jpg")));
+    let earth_surface = Arc::new(Lambertian::new_textured(earth_texture.clone()));
+    world.add(Arc::new(Sphere::new(
+        Point3::new(0., 0., 0.),
+        2.,
+        earth_surface,
+    )));
+
+    world
+}
+
 fn render_row(
     world: Arc<HittableList>,
     row_count: Arc<Mutex<u32>>,
@@ -199,35 +233,46 @@ fn render_row(
 }
 
 fn main() {
+    let threads = 8;
     // image
-    let aspect_ratio = 3.0 / 2.0;
-    let image_width: u32 = 400;
+    let aspect_ratio = 16.0 / 9.0;
+    let image_width: u32 = 960;
     let image_height = (image_width as f64 / aspect_ratio).round() as u32;
-    let scene = 0;
+    let scene = 3;
 
     // world
     let world = match scene {
         0 => Arc::new(random_scene()),
-        _ => Arc::new(two_spheres()),
+        1 => Arc::new(two_spheres()),
+        2 => Arc::new(two_perlin_spheres()),
+        _ => Arc::new(earth()),
     };
 
     // camera
     let lookfrom = match scene {
         0 => Point3::new(13., 2., 3.),
+        1 => Point3::new(13., 2., 2.),
+        2 => Point3::new(13., 2., 2.),
         _ => Point3::new(13., 2., 2.),
     };
     let lookat = match scene {
         0 => Point3::new(0., 0., 0.),
+        1 => Point3::new(0., 0., 0.),
+        2 => Point3::new(0., 0., 0.),
         _ => Point3::new(0., 0., 0.),
     };
     let vup = Vec3::new(0., 1., 0.);
     let dist_to_focus = 10.;
     let aperture = match scene {
         0 => 0.1,
+        1 => 0.0,
+        2 => 0.0,
         _ => 0.0,
     };
     let vfov = match scene {
         0 => 20.,
+        1 => 20.,
+        2 => 20.,
         _ => 20.,
     };
     let camera = Camera::new(
@@ -245,7 +290,7 @@ fn main() {
     let image_data = Arc::new(ImageData {
         height: image_height,
         width: image_width,
-        samples_per_pixel: 100,
+        samples_per_pixel: 200,
         max_depth: 50,
         camera: camera,
     });
@@ -257,7 +302,7 @@ fn main() {
 
     // render
     let mut handles = vec![];
-    for _i in 0..4 {
+    for _i in 0..threads {
         let w = world.clone();
         let rc = row_count.clone();
         let id = image_data.clone();
