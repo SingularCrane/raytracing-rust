@@ -26,7 +26,7 @@ impl Vec3 {
 
     pub fn random_unit_sphere() -> Vec3 {
         loop {
-            let p = Vec3::random();
+            let p = Vec3::random_range(-1.0, 1.0);
             if p.length_squared() < 1. {
                 return p;
             }
@@ -74,7 +74,7 @@ impl Vec3 {
 
     pub fn near_zero(&self) -> bool {
         let s = 1.0e-8;
-        (self.x() < s) && (self.y() < s) && (self.z() < s)
+        (self.x().abs() < s) && (self.y().abs() < s) && (self.z().abs() < s)
     }
 
     pub fn length(&self) -> f64 {
