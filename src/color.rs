@@ -11,12 +11,6 @@ pub fn write_color(pixel_color: Color, samples_per_pixel: usize) -> [u8; 3] {
     r = (r * scale).sqrt();
     g = (g * scale).sqrt();
     b = (b * scale).sqrt();
-    // format!(
-    //     "{} {} {}",
-    //     (256. * r.clamp(0., 0.999)) as u32,
-    //     (256. * g.clamp(0., 0.999)) as u32,
-    //     (256. * b.clamp(0., 0.999)) as u32,
-    // )
     [
         (256. * r.clamp(0., 0.999)) as u8,
         (256. * g.clamp(0., 0.999)) as u8,

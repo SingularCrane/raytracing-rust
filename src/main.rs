@@ -2,6 +2,7 @@ extern crate image;
 extern crate rand;
 
 mod aabb;
+mod aarect;
 mod bvh;
 mod camera;
 mod color;
@@ -17,6 +18,7 @@ mod vec3;
 
 mod prelude {
     pub use crate::aabb::*;
+    pub use crate::aarect::*;
     pub use crate::bvh::*;
     pub use crate::camera::*;
     pub use crate::color::*;
@@ -42,21 +44,23 @@ struct ImageData {
     samples_per_pixel: usize,
     max_depth: usize,
     camera: Camera,
+    background: Color,
 }
 
-fn ray_color(r: &Ray, world: &dyn Hittable, depth: usize) -> Color {
+fn ray_color(r: &Ray, background: Color, world: &dyn Hittable, depth: usize) -> Color {
     if depth <= 0 {
         return Color::new(0., 0., 0.);
     }
-    if let Some(rec) = world.hit(r, 0.001, f64::INFINITY) {
+    if let Some(rec) = world.hit(r, 0.00001, f64::INFINITY) {
+        let emitted = rec.mat.emitted(rec.u, rec.v, rec.p);
         if let Some(scatter) = rec.mat.scatter(r, &rec) {
-            return scatter.attenuation * ray_color(&scatter.ray, world, depth - 1);
+            return emitted + scatter.attenuation * ray_color(&scatter.ray, background, world, depth - 1);
+        } else {
+            return emitted;
         }
-        return Color::new(0., 0., 0.);
+    } else {
+        return background;
     }
-    let unit_direction: Vec3 = r.dir.unit_vector();
-    let t = 0.5 * (unit_direction.y() + 1.0);
-    (1.0 - t) * Color::new(1., 1., 1.) + t * Color::new(0.5, 0.7, 1.0)
 }
 
 fn random_scene() -> HittableList {
@@ -77,11 +81,7 @@ fn random_scene() -> HittableList {
     for a in -11..11 {
         for b in -11..11 {
             let choose_mat = random_f64();
-            let center = Point3::new(
-                a as f64 + 0.9 * random_f64(),
-                0.2,
-                b as f64 + 0.9 * random_f64(),
-            );
+            let center = Point3::new(a as f64 + 0.9 * random_f64(), 0.2, b as f64 + 0.9 * random_f64());
 
             if (center - Point3::new(4., 0.2, 0.)).length() > 0.9 {
                 if choose_mat < 0.8 {
@@ -113,23 +113,11 @@ fn random_scene() -> HittableList {
     }
 
     let material1 = Arc::new(Dielectric::new(1.5));
-    world.add(Arc::new(Sphere::new(
-        Point3::new(0., 1., 0.),
-        1.0,
-        material1.clone(),
-    )));
+    world.add(Arc::new(Sphere::new(Point3::new(0., 1., 0.), 1.0, material1.clone())));
     let material2 = Arc::new(Lambertian::new(Color::new(0.4, 0.2, 0.1)));
-    world.add(Arc::new(Sphere::new(
-        Point3::new(-4., 1., 0.),
-        1.0,
-        material2.clone(),
-    )));
+    world.add(Arc::new(Sphere::new(Point3::new(-4., 1., 0.), 1.0, material2.clone())));
     let material3 = Arc::new(Metal::new(Color::new(0.7, 0.6, 0.5), 0.0));
-    world.add(Arc::new(Sphere::new(
-        Point3::new(4., 1., 0.),
-        1.0,
-        material3,
-    )));
+    world.add(Arc::new(Sphere::new(Point3::new(4., 1., 0.), 1.0, material3)));
 
     //HittableList::new_from_list(Arc::new(BVHNode::new_from_list(world, 0., 1.)))
     world
@@ -180,11 +168,50 @@ fn earth() -> HittableList {
     let mut world = HittableList::new();
     let earth_texture = Arc::new(ImageTexture::new(std::path::Path::new("earthmap.jpg")));
     let earth_surface = Arc::new(Lambertian::new_textured(earth_texture.clone()));
+    world.add(Arc::new(Sphere::new(Point3::new(0., 0., 0.), 2., earth_surface)));
+
+    world
+}
+
+fn simple_light() -> HittableList {
+    let mut world = HittableList::new();
+    let pertext = Arc::new(NoiseTexture::new_scaled(4.0));
     world.add(Arc::new(Sphere::new(
-        Point3::new(0., 0., 0.),
-        2.,
-        earth_surface,
+        Point3::new(0., -1000., 0.),
+        1000.,
+        Arc::new(Lambertian::new_textured(pertext.clone())),
     )));
+    world.add(Arc::new(Sphere::new(
+        Point3::new(0.0, 2.0, 0.0),
+        2.0,
+        Arc::new(Lambertian::new_textured(pertext.clone())),
+    )));
+
+    let difflight = Arc::new(DiffuseLight::new_color(Color::new(4.0, 4.0, 4.0)));
+    world.add(Arc::new(XYRect::new(3.0, 5.0, 1.0, 3.0, -2.0, difflight.clone())));
+
+    world.add(Arc::new(Sphere::new(
+        Point3::new(0.0, 6.0, 0.0),
+        2.0,
+        difflight.clone(),
+    )));
+    world
+}
+
+fn cornell_box() -> HittableList {
+    let mut world = HittableList::new();
+
+    let red = Arc::new(Lambertian::new(Color::new(0.65, 0.5, 0.5)));
+    let white = Arc::new(Lambertian::new(Color::new(0.73, 0.73, 0.73)));
+    let green = Arc::new(Lambertian::new(Color::new(0.12, 0.45, 0.15)));
+    let light = Arc::new(DiffuseLight::new_color(Color::new(15.0, 15.0, 15.0)));
+
+    world.add(Arc::new(YZRect::new(0.0, 555.0, 0.0, 555.0, 555.0, green.clone())));
+    world.add(Arc::new(YZRect::new(0.0, 555.0, 0.0, 555.0, 0.0, red.clone())));
+    world.add(Arc::new(XZRect::new(213.0, 343.0, 277.0, 332.0, 554.0, light.clone())));
+    world.add(Arc::new(XZRect::new(0.0, 555.0, 0.0, 555.0, 0.0, white.clone())));
+    world.add(Arc::new(XZRect::new(0.0, 555.0, 0.0, 555.0, 555.0, white.clone())));
+    world.add(Arc::new(XYRect::new(0.0, 555.0, 0.0, 555.0, 555.0, white.clone())));
 
     world
 }
@@ -217,7 +244,7 @@ fn render_row(
                 let u = (i as f64 + x) / (data.width as f64 - 1.0);
                 let v = (_current_row as f64 + y) / (data.height as f64 - 1.0);
                 let r = data.camera.get_ray(u, v);
-                pixel_color += ray_color(&r, w, data.max_depth);
+                pixel_color += ray_color(&r, data.background, w, data.max_depth);
             }
             {
                 let o = &output.clone();
@@ -235,17 +262,19 @@ fn render_row(
 fn main() {
     let threads = 8;
     // image
-    let aspect_ratio = 16.0 / 9.0;
-    let image_width: u32 = 960;
+    let aspect_ratio = 1.;
+    let image_width: u32 = 100;
     let image_height = (image_width as f64 / aspect_ratio).round() as u32;
-    let scene = 3;
+    let scene = 5;
 
     // world
     let world = match scene {
         0 => Arc::new(random_scene()),
         1 => Arc::new(two_spheres()),
         2 => Arc::new(two_perlin_spheres()),
-        _ => Arc::new(earth()),
+        3 => Arc::new(earth()),
+        4 => Arc::new(simple_light()),
+        _ => Arc::new(cornell_box()),
     };
 
     // camera
@@ -253,13 +282,17 @@ fn main() {
         0 => Point3::new(13., 2., 3.),
         1 => Point3::new(13., 2., 2.),
         2 => Point3::new(13., 2., 2.),
-        _ => Point3::new(13., 2., 2.),
+        3 => Point3::new(13., 2., 2.),
+        4 => Point3::new(23.0, 3.0, 6.0),
+        _ => Point3::new(278.0, 278.0, -800.0),
     };
     let lookat = match scene {
-        0 => Point3::new(0., 0., 0.),
-        1 => Point3::new(0., 0., 0.),
-        2 => Point3::new(0., 0., 0.),
-        _ => Point3::new(0., 0., 0.),
+        0 => Point3::new(0.0, 0.0, 0.0),
+        1 => Point3::new(0.0, 0.0, 0.0),
+        2 => Point3::new(0.0, 0.0, 0.0),
+        3 => Point3::new(0.0, 0.0, 0.0),
+        4 => Point3::new(0.0, 2.0, 0.0),
+        _ => Point3::new(278.0, 278.0, 0.0),
     };
     let vup = Vec3::new(0., 1., 0.);
     let dist_to_focus = 10.;
@@ -267,13 +300,17 @@ fn main() {
         0 => 0.1,
         1 => 0.0,
         2 => 0.0,
+        3 => 0.0,
+        4 => 0.0,
         _ => 0.0,
     };
     let vfov = match scene {
         0 => 20.,
         1 => 20.,
         2 => 20.,
-        _ => 20.,
+        3 => 20.,
+        4 => 20.,
+        _ => 40.,
     };
     let camera = Camera::new(
         lookfrom,
@@ -293,11 +330,16 @@ fn main() {
         samples_per_pixel: 200,
         max_depth: 50,
         camera: camera,
+        background: match scene {
+            0 => Color::new(0.7, 0.8, 1.0),
+            1 => Color::new(0.7, 0.8, 1.0),
+            2 => Color::new(0.7, 0.8, 1.0),
+            3 => Color::new(0.7, 0.8, 1.0),
+            4 => Color::new(0.0, 0.0, 0.0),
+            _ => Color::new(0.0, 0.0, 0.0),
+        },
     });
-    let image = Arc::new(Mutex::new(image::ImageBuffer::new(
-        image_data.width,
-        image_data.height,
-    )));
+    let image = Arc::new(Mutex::new(image::ImageBuffer::new(image_data.width, image_data.height)));
     let row_count = Arc::new(Mutex::new(0));
 
     // render

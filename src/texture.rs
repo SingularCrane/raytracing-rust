@@ -65,9 +65,7 @@ pub struct NoiseTexture {
 
 impl Texture for NoiseTexture {
     fn value(&self, _u: f64, _v: f64, p: Point3) -> Color {
-        Color::new(1., 1., 1.)
-            * 0.5
-            * (1. + (self.scale * p.z() + 10. * self.noise.turb(p, 7)).sin())
+        Color::new(1., 1., 1.) * 0.5 * (1. + (self.scale * p.z() + 10. * self.noise.turb(p, 7)).sin())
         // Color::new(1., 1., 1.) * self.noise.turb(self.scale * p, 7)
     }
 }
@@ -99,8 +97,8 @@ impl Texture for ImageTexture {
         let uc = u.clamp(0., 1.);
         let vc = 1. - v.clamp(0., 1.);
 
-        let mut i: u32 = (uc * (self.width as f64)) as u32;
-        let mut j: u32 = (vc * (self.height as f64)) as u32;
+        let mut i: u32 = (uc * (self.width as f64)).round() as u32;
+        let mut j: u32 = (vc * (self.height as f64)).round() as u32;
         i = if i >= self.width { self.width - 1 } else { i };
         j = if j >= self.height { self.height - 1 } else { j };
 

@@ -8,6 +8,9 @@ use std::sync::Arc;
 
 pub trait Material: Send + Sync {
     fn scatter(&self, r_in: &Ray, rec: &HitRecord) -> Option<Scatter>;
+    fn emitted(&self, u: f64, v: f64, p: Point3) -> Color {
+        Color::new(0., 0., 0.)
+    }
 }
 
 pub struct Scatter {
@@ -40,6 +43,7 @@ impl Lambertian {
 impl Material for Lambertian {
     fn scatter(&self, r_in: &Ray, rec: &HitRecord) -> Option<Scatter> {
         let mut scatter_direction = rec.normal + Vec3::random_unit_vector();
+        // eprint!("dir: {}\nnorm: {}\n", scatter_direction, rec.normal);
         if scatter_direction.near_zero() {
             scatter_direction = rec.normal;
         }
@@ -115,5 +119,31 @@ impl Material for Dielectric {
             Ray::new(rec.p, direction, r_in.time),
             attenuation,
         ));
+    }
+}
+
+pub struct DiffuseLight {
+    emit: Arc<dyn Texture>,
+}
+
+impl Material for DiffuseLight {
+    fn scatter(&self, _r_in: &Ray, _rec: &HitRecord) -> Option<Scatter> {
+        None
+    }
+
+    fn emitted(&self, u: f64, v: f64, p: Point3) -> Color {
+        self.emit.value(u, v, p)
+    }
+}
+
+impl DiffuseLight {
+    pub fn new_textured(emit: Arc<dyn Texture>) -> DiffuseLight {
+        DiffuseLight { emit: emit }
+    }
+
+    pub fn new_color(emit_color: Color) -> DiffuseLight {
+        DiffuseLight {
+            emit: Arc::new(SolidColor::new(emit_color)),
+        }
     }
 }

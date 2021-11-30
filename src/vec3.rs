@@ -20,11 +20,7 @@ impl Vec3 {
 
     pub fn random_range(min: f64, max: f64) -> Vec3 {
         Vec3 {
-            a: [
-                random_range(min, max),
-                random_range(min, max),
-                random_range(min, max),
-            ],
+            a: [random_range(min, max), random_range(min, max), random_range(min, max)],
         }
     }
 
@@ -50,6 +46,7 @@ impl Vec3 {
 
     pub fn random_unit_vector() -> Vec3 {
         Self::random_unit_sphere().unit_vector()
+        // Self::random().unit_vector()
     }
 
     pub fn x(&self) -> f64 {
@@ -95,9 +92,9 @@ impl Vec3 {
     pub fn cross(&self, other: Vec3) -> Vec3 {
         Vec3 {
             a: [
-                self.y() * other.z() - self.z() * other.y(),
-                self.z() * other.x() - self.x() * other.z(),
-                self.z() * other.y() - self.y() * other.x(),
+                self.a[1] * other.a[2] - self.a[2] * other.a[1],
+                self.a[2] * other.a[0] - self.a[0] * other.a[2],
+                self.a[0] * other.a[1] - self.a[1] * other.a[0],
             ],
         }
     }
@@ -123,11 +120,7 @@ impl ops::Add<Vec3> for Vec3 {
     type Output = Self;
     fn add(self, _rhs: Vec3) -> Self::Output {
         Self {
-            a: [
-                self.x() + _rhs.x(),
-                self.y() + _rhs.y(),
-                self.z() + _rhs.z(),
-            ],
+            a: [self.x() + _rhs.x(), self.y() + _rhs.y(), self.z() + _rhs.z()],
         }
     }
 }
@@ -161,11 +154,7 @@ impl ops::Mul<Vec3> for Vec3 {
     type Output = Vec3;
     fn mul(self, _rhs: Vec3) -> Self::Output {
         Self {
-            a: [
-                self.x() * _rhs.x(),
-                self.y() * _rhs.y(),
-                self.z() * _rhs.z(),
-            ],
+            a: [self.x() * _rhs.x(), self.y() * _rhs.y(), self.z() * _rhs.z()],
         }
     }
 }
