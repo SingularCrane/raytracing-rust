@@ -68,11 +68,7 @@ impl Metal {
 impl Material for Metal {
     fn scatter(&self, r_in: &Ray, rec: &HitRecord) -> Option<Scatter> {
         let reflected = r_in.dir.unit_vector().reflect(rec.normal);
-        let scattered = Ray::new(
-            rec.p,
-            reflected + self.fuzz * Vec3::random_unit_sphere(),
-            r_in.time,
-        );
+        let scattered = Ray::new(rec.p, reflected + self.fuzz * Vec3::random_unit_sphere(), r_in.time);
         if scattered.dir.dot(rec.normal) > 0. {
             return Some(Scatter::new(scattered, self.albedo));
         } else {
@@ -99,26 +95,17 @@ impl Dielectric {
 impl Material for Dielectric {
     fn scatter(&self, r_in: &Ray, rec: &HitRecord) -> Option<Scatter> {
         let attenuation = Color::new(1., 1., 1.);
-        let refraction_ratio = if rec.front_face {
-            1.0 / self.ir
-        } else {
-            self.ir
-        };
+        let refraction_ratio = if rec.front_face { 1.0 / self.ir } else { self.ir };
         let unit_direction = r_in.dir.unit_vector();
         let cos_theta = (-unit_direction.dot(rec.normal)).min(1.);
         let sin_theta = (1. - cos_theta * cos_theta).sqrt();
         let cannot_refract = refraction_ratio * sin_theta > 1.;
-        let direction = if cannot_refract
-            || Dielectric::reflectance(cos_theta, refraction_ratio) > random_f64()
-        {
+        let direction = if cannot_refract || Dielectric::reflectance(cos_theta, refraction_ratio) > random_f64() {
             unit_direction.reflect(rec.normal)
         } else {
             unit_direction.refract(rec.normal, refraction_ratio)
         };
-        return Some(Scatter::new(
-            Ray::new(rec.p, direction, r_in.time),
-            attenuation,
-        ));
+        return Some(Scatter::new(Ray::new(rec.p, direction, r_in.time), attenuation));
     }
 }
 
@@ -145,5 +132,30 @@ impl DiffuseLight {
         DiffuseLight {
             emit: Arc::new(SolidColor::new(emit_color)),
         }
+    }
+}
+
+pub struct Isotropic {
+    albedo: Arc<dyn Texture>,
+}
+
+impl Isotropic {
+    pub fn new_color(c: Color) -> Isotropic {
+        Isotropic {
+            albedo: Arc::new(SolidColor::new(c)),
+        }
+    }
+
+    pub fn new_textured(t: Arc<dyn Texture>) -> Isotropic {
+        Isotropic { albedo: t }
+    }
+}
+
+impl Material for Isotropic {
+    fn scatter(&self, r_in: &Ray, rec: &HitRecord) -> Option<Scatter> {
+        Some(Scatter::new(
+            Ray::new(rec.p, Vec3::random_unit_sphere(), r_in.time),
+            self.albedo.value(rec.u, rec.v, rec.p),
+        ))
     }
 }
