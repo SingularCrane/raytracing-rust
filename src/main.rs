@@ -267,8 +267,8 @@ fn final_scene() -> HittableList {
     for i in 0..boxes_per_side {
         for j in 0..boxes_per_side {
             let w = 100.0;
-            let x0 = -1000.0 * i as f64 * w;
-            let z0 = -1000.0 * j as f64 * w;
+            let x0 = -1000.0 + i as f64 * w;
+            let z0 = -1000.0 + j as f64 * w;
             let y0 = 0.0;
             let x1 = x0 + w;
             let y1 = random_range(1.0, 101.0);
@@ -282,7 +282,8 @@ fn final_scene() -> HittableList {
     }
 
     let mut objects = HittableList::new();
-    objects.add(Arc::new(BVHNode::new_from_list(boxes1, 0.0, 1.0)));
+    // objects.add(Arc::new(BVHNode::new_from_list(boxes1, 0.0, 1.0)));
+    objects.add(Arc::new(boxes1));
     let light = Arc::new(DiffuseLight::new_color(Color::new(7.0, 7.0, 7.0)));
     objects.add(Arc::new(XZRect::new(123.0, 423.0, 147.0, 412.0, 554.0, light.clone())));
 
@@ -343,8 +344,13 @@ fn final_scene() -> HittableList {
         boxes2.add(Arc::new(Sphere::new(Point3::random_range(0.0, 165.0), 10.0, white.clone())));
     }
 
+    // objects.add(Arc::new(Translate::new(
+    //     Arc::new(RotateY::new(Arc::new(BVHNode::new_from_list(boxes2, 0.0, 1.0)), 15.0)),
+    //     Vec3::new(-100.0, 270.0, 395.0),
+    // )));
+
     objects.add(Arc::new(Translate::new(
-        Arc::new(RotateY::new(Arc::new(BVHNode::new_from_list(boxes2, 0.0, 1.0)), 15.0)),
+        Arc::new(RotateY::new(Arc::new(boxes2), 15.0)),
         Vec3::new(-100.0, 270.0, 395.0),
     )));
 
@@ -390,7 +396,7 @@ fn render_row(world: Arc<HittableList>, row_count: Arc<Mutex<u32>>, data: Arc<Im
 }
 
 fn main() {
-    let threads = 8;
+    let threads = 4;
     // image
     let scene = 7;
     let mut aspect_ratio = 16.0 / 9.0;
@@ -402,7 +408,7 @@ fn main() {
     let mut aperture = 0.0;
     let vup = Vec3::new(0.0, 1.0, 0.0);
     let mut vfov = 20.0;
-    let mut world;
+    let world;
     let mut samples_per_pixel = 200;
     let max_depth = 50;
 
@@ -446,7 +452,7 @@ fn main() {
         _ => {
             world = final_scene();
             aspect_ratio = 1.0;
-            samples_per_pixel = 200;
+            samples_per_pixel = 10000;
             background = Color::new(0.0, 0.0, 0.0);
             lookfrom = Point3::new(478.0, 278.0, -600.0);
             lookat = Point3::new(278.0, 278.0, 0.0);
