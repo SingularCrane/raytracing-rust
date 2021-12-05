@@ -1,4 +1,5 @@
 use crate::utils::*;
+use std::f64::consts::PI;
 use std::fmt;
 use std::ops;
 
@@ -24,12 +25,21 @@ impl Vec3 {
         }
     }
 
-    pub fn random_unit_sphere() -> Vec3 {
+    pub fn random_in_unit_sphere() -> Vec3 {
         loop {
             let p = Vec3::random_range(-1.0, 1.0);
             if p.length_squared() < 1. {
                 return p;
             }
+        }
+    }
+
+    pub fn random_in_hemisphere(normal: &Vec3) -> Vec3 {
+        let v = Vec3::random_in_unit_sphere();
+        if v.dot(*normal) > 0.0 {
+            v
+        } else {
+            -v
         }
     }
 
@@ -45,7 +55,7 @@ impl Vec3 {
     }
 
     pub fn random_unit_vector() -> Vec3 {
-        Self::random_unit_sphere().unit_vector()
+        Self::random_in_unit_sphere().unit_vector()
         // Self::random().unit_vector()
     }
 
@@ -216,6 +226,6 @@ impl ops::IndexMut<usize> for Vec3 {
 
 impl fmt::Display for Vec3 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{} {} {}", self.x(), self.y(), self.z())
+        write!(f, "(x:{} y:{} z:{})", self.x(), self.y(), self.z())
     }
 }

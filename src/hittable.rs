@@ -8,6 +8,12 @@ use std::sync::Arc;
 pub trait Hittable: Send + Sync {
     fn hit(&self, r: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord>;
     fn bounding_box(&self, time0: f64, time1: f64) -> Option<AABB>;
+    fn pdf_value(&self, _o: &Point3, _v: &Vec3) -> f64 {
+        0.0
+    }
+    fn random(&self, _o: &Vec3) -> Vec3 {
+        Vec3::new(1.0, 0.0, 0.0)
+    }
 }
 
 pub struct HitRecord {
@@ -21,15 +27,15 @@ pub struct HitRecord {
 }
 
 impl HitRecord {
-    pub fn new(p: Point3, t: f64, u: f64, v: f64, material: Arc<dyn Material>) -> HitRecord {
+    pub fn new(p: Point3, t: f64, u: f64, v: f64, mat: Arc<dyn Material>) -> HitRecord {
         HitRecord {
-            p: p,
+            p,
             normal: Vec3::new(0., 0., 0.),
-            t: t,
-            u: u,
-            v: v,
+            t,
+            u,
+            v,
             front_face: false,
-            mat: material,
+            mat,
         }
     }
 
@@ -73,6 +79,12 @@ impl Hittable for Translate {
             None
         }
     }
+    fn pdf_value(&self, o: &Point3, v: &Vec3) -> f64 {
+        self.h.pdf_value(o, v)
+    }
+    fn random(&self, o: &Vec3) -> Vec3 {
+        self.h.random(o)
+    }
 }
 
 pub struct RotateY {
@@ -112,9 +124,9 @@ impl RotateY {
             }
         }
         RotateY {
-            h: h,
-            sin_theta: sin_theta,
-            cos_theta: cos_theta,
+            h,
+            sin_theta,
+            cos_theta,
             bbox: Some(AABB::new(min, max)),
         }
     }
@@ -152,5 +164,41 @@ impl Hittable for RotateY {
     }
     fn bounding_box(&self, _time0: f64, _time1: f64) -> Option<AABB> {
         self.bbox
+    }
+    fn pdf_value(&self, o: &Point3, v: &Vec3) -> f64 {
+        self.h.pdf_value(o, v)
+    }
+    fn random(&self, o: &Vec3) -> Vec3 {
+        self.h.random(o)
+    }
+}
+
+pub struct FlipFace {
+    h: Arc<dyn Hittable>,
+}
+
+impl FlipFace {
+    pub fn new(h: Arc<dyn Hittable>) -> FlipFace {
+        FlipFace { h: h }
+    }
+}
+
+impl Hittable for FlipFace {
+    fn hit(&self, r: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
+        if let Some(mut rec) = self.h.hit(r, t_min, t_max) {
+            rec.front_face = !rec.front_face;
+            Some(rec)
+        } else {
+            None
+        }
+    }
+    fn bounding_box(&self, time0: f64, time1: f64) -> Option<AABB> {
+        self.h.bounding_box(time0, time1)
+    }
+    fn pdf_value(&self, o: &Point3, v: &Vec3) -> f64 {
+        self.h.pdf_value(o, v)
+    }
+    fn random(&self, o: &Vec3) -> Vec3 {
+        self.h.random(o)
     }
 }

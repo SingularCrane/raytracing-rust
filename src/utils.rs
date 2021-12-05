@@ -6,7 +6,8 @@ pub fn random_f64() -> f64 {
 }
 
 pub fn random_range(min: f64, max: f64) -> f64 {
-    min + (max - min) * random_f64()
+    let mut rng = thread_rng();
+    rng.gen_range(min..max)
 }
 
 pub fn random_int(min: usize, max: usize) -> usize {

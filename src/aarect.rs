@@ -2,6 +2,7 @@ use crate::aabb::AABB;
 use crate::hittable::{HitRecord, Hittable};
 use crate::material::Material;
 use crate::ray::{Point3, Ray};
+use crate::utils::random_range;
 use crate::vec3::Vec3;
 
 use std::sync::Arc;
@@ -86,6 +87,21 @@ impl Hittable for XZRect {
             Point3::new(self.x0, self.k - 0.0001, self.z0),
             Point3::new(self.x0, self.k + 0.0001, self.z1),
         ))
+    }
+    fn pdf_value(&self, origin: &Point3, v: &Vec3) -> f64 {
+        if let Some(rec) = self.hit(&Ray::new(*origin, *v, 0.0), 0.001, f64::INFINITY) {
+            let area = (self.x1 - self.x0) * (self.z1 - self.z0);
+            let distance_squared = rec.t * rec.t * v.length_squared();
+            let cosine = v.dot(rec.normal).abs() / v.length();
+
+            distance_squared / (cosine * area)
+        } else {
+            0.0
+        }
+    }
+    fn random(&self, origin: &Point3) -> Vec3 {
+        let random_point = Point3::new(random_range(self.x0, self.x1), self.k, random_range(self.z0, self.z1));
+        random_point - *origin
     }
 }
 
