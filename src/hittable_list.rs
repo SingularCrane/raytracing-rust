@@ -1,6 +1,8 @@
 use crate::aabb::*;
 use crate::hittable::*;
+use crate::prelude::Vec3;
 use crate::ray::*;
+use crate::utils::random_int;
 use std::sync::Arc;
 
 pub struct HittableList {
@@ -9,15 +11,11 @@ pub struct HittableList {
 
 impl HittableList {
     pub fn new() -> HittableList {
-        HittableList {
-            objects: Vec::new(),
-        }
+        HittableList { objects: Vec::new() }
     }
 
     pub fn new_from_list(object: Arc<dyn Hittable>) -> HittableList {
-        HittableList {
-            objects: vec![object],
-        }
+        HittableList { objects: vec![object] }
     }
 
     pub fn add(&mut self, to_add: Arc<dyn Hittable>) {
@@ -57,5 +55,20 @@ impl Hittable for HittableList {
             }
         }
         Some(output_box)
+    }
+
+    fn pdf_value(&self, o: &Point3, v: &Vec3) -> f64 {
+        let weight = 1.0 / self.objects.len() as f64;
+        let mut sum = 0.0;
+
+        for object in &self.objects {
+            sum += weight * object.pdf_value(o, v);
+        }
+
+        sum
+    }
+
+    fn random(&self, o: &Vec3) -> Vec3 {
+        self.objects[random_int(0, self.objects.len() - 1)].random(o)
     }
 }

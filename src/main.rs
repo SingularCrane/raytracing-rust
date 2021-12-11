@@ -60,23 +60,24 @@ struct World {
     lights: Arc<dyn Hittable>,
 }
 
-fn ray_color(r: &Ray, background: Color, world: &HittableList, lights: Arc<dyn Hittable>, depth: usize) -> Color {
+fn ray_color(r: &Ray, background: Color, world: &World, depth: usize) -> Color {
     if depth <= 0 {
         return Color::new(0., 0., 0.);
     }
-    if let Some(rec) = world.hit(r, 0.00001, f64::INFINITY) {
+    if let Some(rec) = world.objects.hit(r, 0.00001, f64::INFINITY) {
         let emitted = rec.mat.emitted(&rec, rec.u, rec.v, rec.p);
-        if let Some(scatter) = rec.mat.scatter(r, &rec) {
-            let light_pdf = HittablePDF::new(lights.clone(), rec.p);
-            let cos_pdf = CosinePDF::new(&rec.normal);
-            let mixed_pdf = MixturePDF::new(Arc::new(light_pdf), Arc::new(cos_pdf));
-            let scattered = Ray::new(rec.p, mixed_pdf.generate(), r.time);
-            let pdf_val = mixed_pdf.value(&scattered.dir);
-            emitted
-                + scatter.attenuation
-                    * rec.mat.scattering_pdf(r, &rec, &scattered)
-                    * ray_color(&scattered, background, world, lights, depth - 1)
-                    / pdf_val
+        if let Some(srec) = rec.mat.scatter(r, &rec) {
+            if let Some(pdf) = srec.pdf {
+                let light_pdf = HittablePDF::new(world.lights.clone(), rec.p);
+                let mixed_pdf = MixturePDF::new(Arc::new(light_pdf), pdf);
+                let scattered = Ray::new(rec.p, mixed_pdf.generate(), r.time);
+                let pdf_val = mixed_pdf.value(&scattered.dir);
+                emitted
+                    + srec.attenuation * rec.mat.scattering_pdf(r, &rec, &scattered) * ray_color(&scattered, background, world, depth - 1)
+                        / pdf_val
+            } else {
+                srec.attenuation * ray_color(&srec.ray, background, world, depth - 1)
+            }
         } else {
             emitted
         }
@@ -201,15 +202,17 @@ fn ray_color(r: &Ray, background: Color, world: &HittableList, lights: Arc<dyn H
 
 fn cornell_box() -> World {
     let mut world = HittableList::new();
+    let mut lights = HittableList::new();
 
     let red = Arc::new(Lambertian::new(Color::new(0.65, 0.05, 0.05)));
     let white = Arc::new(Lambertian::new(Color::new(0.73, 0.73, 0.73)));
     let green = Arc::new(Lambertian::new(Color::new(0.12, 0.45, 0.15)));
     let light = Arc::new(DiffuseLight::new_color(Color::new(15.0, 15.0, 15.0)));
+    let metal = Arc::new(Metal::new(Color::new(0.8, 0.85, 0.88), 0.1));
 
     world.add(Arc::new(YZRect::new(0.0, 555.0, 0.0, 555.0, 555.0, green.clone())));
     world.add(Arc::new(YZRect::new(0.0, 555.0, 0.0, 555.0, 0.0, red.clone())));
-    let lights = Arc::new(FlipFace::new(Arc::new(XZRect::new(
+    let ceil_light = Arc::new(FlipFace::new(Arc::new(XZRect::new(
         213.0,
         343.0,
         227.0,
@@ -217,7 +220,8 @@ fn cornell_box() -> World {
         554.0,
         light.clone(),
     ))));
-    world.add(lights.clone());
+    world.add(ceil_light.clone());
+    lights.add(ceil_light.clone());
     world.add(Arc::new(XZRect::new(0.0, 555.0, 0.0, 555.0, 0.0, white.clone())));
     world.add(Arc::new(XZRect::new(0.0, 555.0, 0.0, 555.0, 555.0, white.clone())));
     world.add(Arc::new(XYRect::new(0.0, 555.0, 0.0, 555.0, 555.0, white.clone())));
@@ -229,17 +233,25 @@ fn cornell_box() -> World {
     ));
     let box1_r = Arc::new(RotateY::new(box1, 15.0));
     let box1_t = Arc::new(Translate::new(box1_r, Vec3::new(265.0, 0.0, 295.0)));
-    world.add(box1_t);
-    let box2 = Arc::new(RectPrism::new(
-        Point3::new(0.0, 0.0, 0.0),
-        Point3::new(165.0, 165.0, 165.0),
-        white.clone(),
-    ));
-    let box2_r = Arc::new(RotateY::new(box2, -18.0));
-    let box2_t = Arc::new(Translate::new(box2_r, Vec3::new(130.0, 0.0, 65.0)));
-    world.add(box2_t);
+    world.add(box1_t.clone());
+    // lights.add(box1_t);
+    // let box2 = Arc::new(RectPrism::new(
+    //     Point3::new(0.0, 0.0, 0.0),
+    //     Point3::new(165.0, 165.0, 165.0),
+    //     white.clone(),
+    // ));
+    // let box2_r = Arc::new(RotateY::new(box2, -18.0));
+    // let box2_t = Arc::new(Translate::new(box2_r, Vec3::new(130.0, 0.0, 65.0)));
+    // world.add(box2_t);
+    let glass = Arc::new(Dielectric::new(1.5));
+    let sphere = Arc::new(Sphere::new(Point3::new(190.0, 90.0, 190.0), 90.0, glass));
+    world.add(sphere.clone());
+    lights.add(sphere.clone());
 
-    World { objects: world, lights }
+    World {
+        objects: world,
+        lights: Arc::new(lights),
+    }
 }
 
 // fn cornell_smoke() -> HittableList {
@@ -405,7 +417,7 @@ fn render_row(world: Arc<World>, row_count: Arc<Mutex<u32>>, data: Arc<ImageData
                 let u = (i as f64 + x) / (data.width as f64 - 1.0);
                 let v = (current_row as f64 + y) / (data.height as f64 - 1.0);
                 let r = data.camera.get_ray(u, v);
-                pixel_color += ray_color(&r, data.background, &world.objects, world.lights.clone(), data.max_depth);
+                pixel_color += ray_color(&r, data.background, &world, data.max_depth);
             }
             {
                 let o = &output.clone();
@@ -464,8 +476,9 @@ fn main() {
             background = Color::new(0.0, 0.0, 0.0);
             vfov = 40.0;
             aspect_ratio = 1.0;
-            samples_per_pixel = 1000;
-            image_width = 800;
+            samples_per_pixel = 500;
+            image_width = 600;
+            aperture = 10.0;
         } // 6 => {
           //     world = cornell_smoke();
           //     lookfrom = Point3::new(278.0, 278.0, -800.0);

@@ -1,6 +1,8 @@
 use crate::aabb::*;
 use crate::hittable::*;
 use crate::material::*;
+use crate::prelude::Vec3;
+use crate::prelude::ONB;
 use crate::ray::*;
 use std::sync::Arc;
 
@@ -55,6 +57,23 @@ impl Hittable for Sphere {
             self.center + Point3::new(self.radius, self.radius, self.radius),
         ))
     }
+
+    fn pdf_value(&self, o: &Point3, v: &Vec3) -> f64 {
+        if let Some(_rec) = self.hit(&Ray::new(*o, *v, 0.0), 0.001, f64::INFINITY) {
+            let cos_theta_max = (1.0 - self.radius * self.radius / (self.center - *o).length_squared()).sqrt();
+            let solid_angle = 2.0 * PI * (1.0 - cos_theta_max);
+            1.0 / solid_angle
+        } else {
+            0.0
+        }
+    }
+
+    fn random(&self, o: &Vec3) -> Vec3 {
+        let dir = self.center - *o;
+        let distance_squared = dir.length_squared();
+        let uvw = ONB::build_from_w(&dir);
+        uvw.local_vec(&Vec3::random_to_sphere(self.radius, distance_squared))
+    }
 }
 
 pub struct MovingSphere {
@@ -67,14 +86,7 @@ pub struct MovingSphere {
 }
 
 impl MovingSphere {
-    pub fn new(
-        cen0: Point3,
-        cen1: Point3,
-        time0: f64,
-        time1: f64,
-        radius: f64,
-        material: Arc<dyn Material>,
-    ) -> MovingSphere {
+    pub fn new(cen0: Point3, cen1: Point3, time0: f64, time1: f64, radius: f64, material: Arc<dyn Material>) -> MovingSphere {
         MovingSphere {
             center0: cen0,
             center1: cen1,
@@ -86,8 +98,7 @@ impl MovingSphere {
     }
 
     fn center(&self, time: f64) -> Point3 {
-        self.center0
-            - ((time - self.time0) / (self.time1 - self.time0)) * (self.center1 - self.center0)
+        self.center0 - ((time - self.time0) / (self.time1 - self.time0)) * (self.center1 - self.center0)
     }
 }
 
