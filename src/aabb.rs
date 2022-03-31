@@ -1,17 +1,17 @@
 use crate::ray::*;
 
 #[derive(Copy, Clone)]
-pub struct AABB {
+pub struct Aabb {
     pub min: Point3,
     pub max: Point3,
 }
 
-impl AABB {
-    pub fn new(min: Point3, max: Point3) -> AABB {
-        AABB { min: min, max: max }
+impl Aabb {
+    pub fn new(min: Point3, max: Point3) -> Aabb {
+        Aabb { min, max }
     }
 
-    pub fn surrounding_box(box0: AABB, box1: AABB) -> AABB {
+    pub fn surrounding_box(box0: Aabb, box1: Aabb) -> Aabb {
         let small = Point3::new(
             box0.min.x().min(box1.min.x()),
             box0.min.y().min(box1.min.y()),
@@ -22,7 +22,7 @@ impl AABB {
             box0.max.y().max(box1.max.y()),
             box0.max.z().max(box1.max.z()),
         );
-        AABB::new(small, big)
+        Aabb::new(small, big)
     }
 
     pub fn hit(&self, r: &Ray, t_min: f64, t_max: f64) -> bool {

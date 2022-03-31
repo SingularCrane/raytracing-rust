@@ -61,7 +61,7 @@ struct World {
 }
 
 fn ray_color(r: &Ray, background: Color, world: &World, depth: usize) -> Color {
-    if depth <= 0 {
+    if depth == 0 {
         return Color::new(0., 0., 0.);
     }
     if let Some(rec) = world.objects.hit(r, 0.00001, f64::INFINITY) {
@@ -210,30 +210,19 @@ fn cornell_box() -> World {
     let light = Arc::new(DiffuseLight::new_color(Color::new(15.0, 15.0, 15.0)));
     let metal = Arc::new(Metal::new(Color::new(0.8, 0.85, 0.88), 0.1));
 
-    world.add(Arc::new(YZRect::new(0.0, 555.0, 0.0, 555.0, 555.0, green.clone())));
-    world.add(Arc::new(YZRect::new(0.0, 555.0, 0.0, 555.0, 0.0, red.clone())));
-    let ceil_light = Arc::new(FlipFace::new(Arc::new(XZRect::new(
-        213.0,
-        343.0,
-        227.0,
-        332.0,
-        554.0,
-        light.clone(),
-    ))));
+    world.add(Arc::new(YZRect::new(0.0, 555.0, 0.0, 555.0, 555.0, green)));
+    world.add(Arc::new(YZRect::new(0.0, 555.0, 0.0, 555.0, 0.0, red)));
+    let ceil_light = Arc::new(FlipFace::new(Arc::new(XZRect::new(213.0, 343.0, 227.0, 332.0, 554.0, light))));
     world.add(ceil_light.clone());
-    lights.add(ceil_light.clone());
+    lights.add(ceil_light);
     world.add(Arc::new(XZRect::new(0.0, 555.0, 0.0, 555.0, 0.0, white.clone())));
     world.add(Arc::new(XZRect::new(0.0, 555.0, 0.0, 555.0, 555.0, white.clone())));
     world.add(Arc::new(XYRect::new(0.0, 555.0, 0.0, 555.0, 555.0, white.clone())));
 
-    let box1 = Arc::new(RectPrism::new(
-        Point3::new(0.0, 0.0, 0.0),
-        Point3::new(165.0, 330.0, 165.0),
-        white.clone(),
-    ));
+    let box1 = Arc::new(RectPrism::new(Point3::new(0.0, 0.0, 0.0), Point3::new(165.0, 330.0, 165.0), white));
     let box1_r = Arc::new(RotateY::new(box1, 15.0));
     let box1_t = Arc::new(Translate::new(box1_r, Vec3::new(265.0, 0.0, 295.0)));
-    world.add(box1_t.clone());
+    world.add(box1_t);
     // lights.add(box1_t);
     // let box2 = Arc::new(RectPrism::new(
     //     Point3::new(0.0, 0.0, 0.0),
@@ -246,7 +235,7 @@ fn cornell_box() -> World {
     let glass = Arc::new(Dielectric::new(1.5));
     let sphere = Arc::new(Sphere::new(Point3::new(190.0, 90.0, 190.0), 90.0, glass));
     world.add(sphere.clone());
-    lights.add(sphere.clone());
+    lights.add(sphere);
 
     World {
         objects: world,
@@ -446,7 +435,7 @@ fn main() {
     let vup = Vec3::new(0.0, 1.0, 0.0);
     let mut vfov = 20.0;
     let world;
-    let mut samples_per_pixel = 200;
+    let mut samples_per_pixel = 1000;
     let max_depth = 50;
 
     match scene {
@@ -476,7 +465,7 @@ fn main() {
             background = Color::new(0.0, 0.0, 0.0);
             vfov = 40.0;
             aspect_ratio = 1.0;
-            samples_per_pixel = 500;
+            samples_per_pixel = 5000;
             image_width = 600;
             aperture = 10.0;
         } // 6 => {
@@ -505,10 +494,10 @@ fn main() {
     let image_data = Arc::new(ImageData {
         height: image_height,
         width: image_width,
-        samples_per_pixel: samples_per_pixel,
-        max_depth: max_depth,
-        camera: camera,
-        background: background,
+        samples_per_pixel,
+        max_depth,
+        camera,
+        background,
     });
     let image = Arc::new(Mutex::new(image::ImageBuffer::new(image_data.width, image_data.height)));
     let row_count = Arc::new(Mutex::new(0));

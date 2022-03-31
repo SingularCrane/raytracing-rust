@@ -1,4 +1,4 @@
-use crate::aabb::AABB;
+use crate::aabb::Aabb;
 use crate::material::Material;
 use crate::ray::{Point3, Ray};
 use crate::utils::degrees_to_radians;
@@ -7,7 +7,7 @@ use std::sync::Arc;
 
 pub trait Hittable: Send + Sync {
     fn hit(&self, r: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord>;
-    fn bounding_box(&self, time0: f64, time1: f64) -> Option<AABB>;
+    fn bounding_box(&self, time0: f64, time1: f64) -> Option<Aabb>;
     fn pdf_value(&self, _o: &Point3, _v: &Vec3) -> f64 {
         0.0
     }
@@ -72,9 +72,9 @@ impl Hittable for Translate {
             None
         }
     }
-    fn bounding_box(&self, time0: f64, time1: f64) -> Option<AABB> {
+    fn bounding_box(&self, time0: f64, time1: f64) -> Option<Aabb> {
         if let Some(out_box) = self.h.bounding_box(time0, time1) {
-            Some(AABB::new(out_box.min + self.offset, out_box.max + self.offset))
+            Some(Aabb::new(out_box.min + self.offset, out_box.max + self.offset))
         } else {
             None
         }
@@ -91,7 +91,7 @@ pub struct RotateY {
     h: Arc<dyn Hittable>,
     sin_theta: f64,
     cos_theta: f64,
-    bbox: Option<AABB>,
+    bbox: Option<Aabb>,
 }
 
 impl RotateY {
@@ -127,7 +127,7 @@ impl RotateY {
             h,
             sin_theta,
             cos_theta,
-            bbox: Some(AABB::new(min, max)),
+            bbox: Some(Aabb::new(min, max)),
         }
     }
 }
@@ -162,7 +162,7 @@ impl Hittable for RotateY {
             None
         }
     }
-    fn bounding_box(&self, _time0: f64, _time1: f64) -> Option<AABB> {
+    fn bounding_box(&self, _time0: f64, _time1: f64) -> Option<Aabb> {
         self.bbox
     }
     fn pdf_value(&self, o: &Point3, v: &Vec3) -> f64 {
@@ -192,7 +192,7 @@ impl Hittable for FlipFace {
             None
         }
     }
-    fn bounding_box(&self, time0: f64, time1: f64) -> Option<AABB> {
+    fn bounding_box(&self, time0: f64, time1: f64) -> Option<Aabb> {
         self.h.bounding_box(time0, time1)
     }
     fn pdf_value(&self, o: &Point3, v: &Vec3) -> f64 {

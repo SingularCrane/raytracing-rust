@@ -1,4 +1,4 @@
-use crate::aabb::AABB;
+use crate::aabb::Aabb;
 use crate::hittable::{HitRecord, Hittable};
 use crate::material::Material;
 use crate::ray::Ray;
@@ -62,7 +62,7 @@ impl Hittable for ConstantMedium {
             None
         }
     }
-    fn bounding_box(&self, time0: f64, time1: f64) -> Option<AABB> {
+    fn bounding_box(&self, time0: f64, time1: f64) -> Option<Aabb> {
         self.boundary.bounding_box(time0, time1)
     }
 }

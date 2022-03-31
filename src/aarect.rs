@@ -1,4 +1,4 @@
-use crate::aabb::AABB;
+use crate::aabb::Aabb;
 use crate::hittable::{HitRecord, Hittable};
 use crate::material::Material;
 use crate::ray::{Point3, Ray};
@@ -34,8 +34,8 @@ impl Hittable for XYRect {
         rec.set_face_normal(r, &outward_normal);
         Some(rec)
     }
-    fn bounding_box(&self, _time0: f64, _time1: f64) -> Option<AABB> {
-        Some(AABB::new(
+    fn bounding_box(&self, _time0: f64, _time1: f64) -> Option<Aabb> {
+        Some(Aabb::new(
             Point3::new(self.x0, self.y0, self.k - 0.0001),
             Point3::new(self.x0, self.y0, self.k + 0.0001),
         ))
@@ -82,8 +82,8 @@ impl Hittable for XZRect {
         rec.set_face_normal(r, &outward_normal);
         Some(rec)
     }
-    fn bounding_box(&self, _time0: f64, _time1: f64) -> Option<AABB> {
-        Some(AABB::new(
+    fn bounding_box(&self, _time0: f64, _time1: f64) -> Option<Aabb> {
+        Some(Aabb::new(
             Point3::new(self.x0, self.k - 0.0001, self.z0),
             Point3::new(self.x0, self.k + 0.0001, self.z1),
         ))
@@ -145,8 +145,8 @@ impl Hittable for YZRect {
         rec.set_face_normal(r, &outward_normal);
         Some(rec)
     }
-    fn bounding_box(&self, _time0: f64, _time1: f64) -> Option<AABB> {
-        Some(AABB::new(
+    fn bounding_box(&self, _time0: f64, _time1: f64) -> Option<Aabb> {
+        Some(Aabb::new(
             Point3::new(self.k - 0.0001, self.y0, self.z0),
             Point3::new(self.k + 0.0001, self.y0, self.z0),
         ))

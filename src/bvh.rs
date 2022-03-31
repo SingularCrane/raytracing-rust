@@ -8,7 +8,7 @@ use std::sync::Arc;
 pub struct BVHNode {
     left: Arc<dyn Hittable>,
     right: Arc<dyn Hittable>,
-    bbox: AABB,
+    bbox: Aabb,
 }
 
 impl BVHNode {
@@ -21,7 +21,7 @@ impl BVHNode {
         BVHNode {
             left: left.clone(),
             right: right.clone(),
-            bbox: AABB::surrounding_box(
+            bbox: Aabb::surrounding_box(
                 left.bounding_box(time0, time1).unwrap(),
                 right.bounding_box(time0, time1).unwrap(),
             ),
@@ -44,17 +44,17 @@ impl BVHNode {
         let object_span = objects.len();
 
         if object_span == 1 {
-            return BVHNode::new(objects[0].clone(), objects[0].clone(), time0, time1);
+            BVHNode::new(objects[0].clone(), objects[0].clone(), time0, time1)
         } else if object_span == 2 {
             if comparator(objects[0].clone(), objects[1].clone()).is_gt() {
-                return BVHNode::new(objects[0].clone(), objects[1].clone(), time0, time1);
+                BVHNode::new(objects[0].clone(), objects[1].clone(), time0, time1)
             } else {
-                return BVHNode::new(objects[1].clone(), objects[0].clone(), time0, time1);
+                BVHNode::new(objects[1].clone(), objects[0].clone(), time0, time1)
             }
         } else {
             objects.sort_by(|a, b| comparator(a.clone(), b.clone()));
             let mid = object_span / 2;
-            return BVHNode::new(
+            BVHNode::new(
                 Arc::new(BVHNode::new_from_vec(
                     objects[0..mid].to_vec(),
                     time0,
@@ -63,7 +63,7 @@ impl BVHNode {
                 Arc::new(BVHNode::new_from_vec(objects[mid..].to_vec(), time0, time1)),
                 time0,
                 time1,
-            );
+            )
         }
     }
 }
@@ -86,7 +86,7 @@ impl Hittable for BVHNode {
         );
         hit_right.or(hit_left)
     }
-    fn bounding_box(&self, _time0: f64, _time1: f64) -> Option<AABB> {
+    fn bounding_box(&self, _time0: f64, _time1: f64) -> Option<Aabb> {
         Some(self.bbox)
     }
 }

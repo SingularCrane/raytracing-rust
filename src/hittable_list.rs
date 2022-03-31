@@ -1,8 +1,4 @@
-use crate::aabb::*;
-use crate::hittable::*;
-use crate::prelude::Vec3;
-use crate::ray::*;
-use crate::utils::random_int;
+use crate::prelude::{random_int, Aabb, HitRecord, Hittable, Point3, Ray, Vec3};
 use std::sync::Arc;
 
 pub struct HittableList {
@@ -37,19 +33,19 @@ impl Hittable for HittableList {
         temp_rec
     }
 
-    fn bounding_box(&self, time0: f64, time1: f64) -> Option<AABB> {
+    fn bounding_box(&self, time0: f64, time1: f64) -> Option<Aabb> {
         if self.objects.len() == 0 {
             return None;
         }
 
-        let mut output_box = AABB::new(Point3::new(0., 0., 0.), Point3::new(0., 0., 0.));
+        let mut output_box = Aabb::new(Point3::new(0., 0., 0.), Point3::new(0., 0., 0.));
         let mut first_box = true;
         for object in self.objects.iter() {
             if let Some(temp_box) = object.bounding_box(time0, time1) {
                 output_box = if first_box {
                     temp_box
                 } else {
-                    AABB::surrounding_box(output_box, temp_box)
+                    Aabb::surrounding_box(output_box, temp_box)
                 };
                 first_box = false;
             }

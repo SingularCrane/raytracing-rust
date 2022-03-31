@@ -1,4 +1,4 @@
-use crate::aabb::AABB;
+use crate::aabb::Aabb;
 use crate::aarect::{XYRect, XZRect, YZRect};
 use crate::hittable::{HitRecord, Hittable};
 use crate::hittable_list::HittableList;
@@ -39,7 +39,7 @@ impl Hittable for RectPrism {
     fn hit(&self, r: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
         self.sides.hit(r, t_min, t_max)
     }
-    fn bounding_box(&self, _time0: f64, _time1: f64) -> Option<AABB> {
-        Some(AABB::new(self.min, self.max))
+    fn bounding_box(&self, _time0: f64, _time1: f64) -> Option<Aabb> {
+        Some(Aabb::new(self.min, self.max))
     }
 }
